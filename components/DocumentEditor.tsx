@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import './DocumentEditor.css';
 
 interface TextElement {
@@ -21,6 +21,7 @@ interface DocumentEditorProps {
     address: string;
     phone: string;
     email: string;
+    logo: string;
   };
   onEditLetterhead: () => void;
 }
@@ -49,13 +50,24 @@ export default function DocumentEditor({
   const [guideLines, setGuideLines] = useState<GuideLines>({ x: null, y: null });
   const [isEditingId, setIsEditingId] = useState<string | null>(null);
   const [wasDragging, setWasDragging] = useState(false);
+  const [logoPosition, setLogoPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const [logoDragOffset, setLogoDragOffset] = useState({ x: 0, y: 0 });
+  const [theme, setTheme] = useState<'classic' | 'modern' | 'corporate' | 'creative' | 'minimal'>('modern');
+  const logoRef = useRef<HTMLImageElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
+  const isDraggingLogoRef = useRef(false);
 
   // Load document from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('document');
     if (saved) {
       setTextElements(JSON.parse(saved));
+    }
+    
+    const savedLogoPos = localStorage.getItem('logoPosition');
+    if (savedLogoPos) {
+      setLogoPosition(JSON.parse(savedLogoPos));
     }
   }, []);
 
@@ -64,15 +76,83 @@ export default function DocumentEditor({
     localStorage.setItem('document', JSON.stringify(textElements));
   }, [textElements]);
 
+  // Save logo position to localStorage
+  useEffect(() => {
+    localStorage.setItem('logoPosition', JSON.stringify(logoPosition));
+  }, [logoPosition]);
+
+  // Global mouse up listener - MUST fire on ANY mouseup
+  useEffect(() => {
+    const stopDrag = () => {
+      isDraggingLogoRef.current = false;
+      setIsDraggingLogo(false);
+    };
+
+    // Listen on window with capture phase to ensure we catch EVERY mouseup
+    window.addEventListener('mouseup', stopDrag, true);
+    
+    return () => {
+      window.removeEventListener('mouseup', stopDrag, true);
+    };
+  }, []);
+
+  const handleLogoMouseDown = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
+    e.stopPropagation();
+    
+    const letterheadEl = (e.currentTarget as HTMLImageElement).closest('.letterhead');
+    if (!letterheadEl) return;
+    
+    const logoRect = (e.currentTarget as HTMLImageElement).getBoundingClientRect();
+    
+    setLogoDragOffset({
+      x: e.clientX - logoRect.left,
+      y: e.clientY - logoRect.top,
+    });
+    
+    isDraggingLogoRef.current = true;
+    setIsDraggingLogo(true);
+  }, []);
+
+  const handleLogoMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // FIRST CHECK: Exit immediately if not dragging
+    if (!isDraggingLogoRef.current) {
+      return;
+    }
+    
+    // SECOND CHECK: Extra safety - verify we still have the data we need
+    if (logoDragOffset.x === undefined || logoDragOffset.y === undefined) {
+      isDraggingLogoRef.current = false;
+      return;
+    }
+    
+    const letterheadEl = document.querySelector('.letterhead');
+    if (!letterheadEl) {
+      isDraggingLogoRef.current = false;
+      return;
+    }
+    
+    const rect = letterheadEl.getBoundingClientRect();
+    const newX = Math.max(0, e.clientX - rect.left - logoDragOffset.x);
+    const newY = Math.max(0, e.clientY - rect.top - logoDragOffset.y);
+    
+    setLogoPosition({ x: newX, y: newY });
+  }, [logoDragOffset]);
+
+  const handleLogoMouseUp = useCallback(() => {
+    isDraggingLogoRef.current = false;
+    setIsDraggingLogo(false);
+  }, []);
+
   const handleAddText = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Don't add text if we just finished dragging
-    if (wasDragging) {
+    // Don't add text if we just finished dragging or if logo is being dragged
+    if (wasDragging || isDraggingLogo) {
       setWasDragging(false);
       return;
     }
 
     if ((e.target as HTMLElement).classList.contains('text-element')) return;
     if ((e.target as HTMLElement).classList.contains('letterhead')) return;
+    if ((e.target as HTMLElement).classList.contains('letterhead-logo')) return;
     if ((e.target as HTMLElement).classList.contains('empty-state-hint')) return;
     if ((e.target as HTMLElement).classList.contains('drag-handle')) return;
 
@@ -110,17 +190,13 @@ export default function DocumentEditor({
   };
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string) => {
-    // If this element is being edited, allow normal text editing
     if (isEditingId === elementId) {
       return;
     }
     
-    // Don't prevent default on first click - let it focus the element
-    // Only prevent default when we're about to drag
     const element = textElements.find((el) => el.id === elementId);
     if (!element) return;
     
-    // Store initial position for potential drag
     const rect = documentRef.current?.getBoundingClientRect();
     if (!rect) return;
     
@@ -129,7 +205,6 @@ export default function DocumentEditor({
       y: e.clientY - rect.top - element.y,
     });
     
-    // Mark that we're ready to start a drag if mouse moves
     setDraggedElementId(elementId);
     setSelectedId(elementId);
   };
@@ -137,7 +212,6 @@ export default function DocumentEditor({
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!draggedElementId) return;
     
-    // Don't drag if we're editing
     if (isEditingId === draggedElementId) {
       setDraggedElementId(null);
       return;
@@ -152,14 +226,12 @@ export default function DocumentEditor({
     const newX = currentX - dragStart.x;
     const newY = currentY - dragStart.y;
     
-    // Only start actual drag if moved more than 2 pixels
     const distance = Math.sqrt(Math.pow(newX - dragStart.x, 2) + Math.pow(newY - dragStart.y, 2));
     if (distance < 2) return;
     
     setIsDragging(true);
     setWasDragging(true);
     
-    // Update guide lines
     setGuideLines({
       x: newX,
       y: newY,
@@ -176,8 +248,10 @@ export default function DocumentEditor({
       setIsDragging(false);
       setDraggedElementId(null);
       setGuideLines({ x: null, y: null });
-      // Prevent the click event from creating a new element
       e.stopPropagation();
+    }
+    if (isDraggingLogo) {
+      setIsDraggingLogo(false);
     }
   };
 
@@ -285,9 +359,28 @@ export default function DocumentEditor({
         )}
       </div>
 
-      <div className="document" ref={documentRef} onClick={handleAddText} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+      <div className="document" ref={documentRef} onClick={handleAddText} onMouseMove={(e) => { handleMouseMove(e); handleLogoMouseMove(e); }} onMouseUp={() => { handleMouseUp(null as any); handleLogoMouseUp(); }} onMouseLeave={() => { handleMouseUp(null as any); handleLogoMouseUp(); }}>
+
         {/* Letterhead */}
         <div className="letterhead">
+          {letterhead.logo && (
+            <img
+              ref={logoRef}
+              src={letterhead.logo}
+              alt="Logo"
+              className="letterhead-logo"
+              onMouseDown={handleLogoMouseDown}
+              onMouseUp={handleLogoMouseUp}
+              style={{
+                position: 'absolute',
+                left: `${logoPosition.x}px`,
+                top: `${logoPosition.y}px`,
+                cursor: isDraggingLogo ? 'grabbing' : 'grab',
+                zIndex: 10,
+                userSelect: 'none',
+              }}
+            />
+          )}
           <h2>{letterhead.company}</h2>
           <p className="letterhead-info">
             {letterhead.address && <span>{letterhead.address}</span>}

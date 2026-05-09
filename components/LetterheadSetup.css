@@ -52,6 +52,23 @@
   border-color: #667eea;
 }
 
+.logo-preview {
+  margin-top: 10px;
+  padding: 10px;
+  border: 2px dashed #667eea;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f7ff;
+}
+
+.logo-preview img {
+  max-width: 150px;
+  max-height: 150px;
+  object-fit: contain;
+}
+
 .submit-btn {
   width: 100%;
   padding: 12px;

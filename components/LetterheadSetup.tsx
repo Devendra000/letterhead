@@ -9,6 +9,7 @@ interface LetterheadSetupProps {
     address: string;
     phone: string;
     email: string;
+    logo: string;
   }) => void;
 }
 
@@ -17,10 +18,22 @@ export default function LetterheadSetup({ onSubmit }: LetterheadSetupProps) {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [logo, setLogo] = useState('');
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLogo(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ company, address, phone, email });
+    onSubmit({ company, address, phone, email, logo });
   };
 
   return (
@@ -73,6 +86,21 @@ export default function LetterheadSetup({ onSubmit }: LetterheadSetupProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your.email@company.com"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="logo">Logo (Optional)</label>
+            <input
+              id="logo"
+              type="file"
+              accept="image/*"
+              onChange={handleLogoChange}
+            />
+            {logo && (
+              <div className="logo-preview">
+                <img src={logo} alt="Logo preview" />
+              </div>
+            )}
           </div>
 
           <button type="submit" className="submit-btn">

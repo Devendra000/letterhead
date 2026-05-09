@@ -94,6 +94,18 @@
   padding-bottom: 20px;
   border-bottom: 2px solid #333;
   text-align: center;
+  position: relative;
+  min-height: 100px;
+}
+
+.letterhead-logo {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+  margin-bottom: 15px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .letterhead h2 {
@@ -235,10 +247,67 @@
   border-top: 1px dashed #667eea;
 }
 
+.guide-line-horizontal {
+  height: 2px;
+  width: 100%;
+  left: 0;
+  border-top: 1px dashed #667eea;
+}
+
+/* Theme Styles */
+.theme-classic .letterhead {
+  border-bottom-color: #333;
+  font-family: Georgia, serif;
+}
+
+.theme-classic .letterhead h2 {
+  color: #333;
+}
+
+.theme-modern .letterhead {
+  border-bottom-color: #667eea;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  font-family: Arial, sans-serif;
+}
+
+.theme-modern .letterhead h2 {
+  color: #667eea;
+}
+
+.theme-corporate .letterhead {
+  border-bottom-color: #1a365d;
+  font-family: Helvetica, sans-serif;
+}
+
+.theme-corporate .letterhead h2 {
+  color: #1a365d;
+}
+
+.theme-creative .letterhead {
+  border-bottom-color: #d946ef;
+  background: linear-gradient(135deg, #fef5f5 0%, #ffffff 100%);
+  font-family: Verdana, sans-serif;
+}
+
+.theme-creative .letterhead h2 {
+  color: #d946ef;
+}
+
+.theme-minimal .letterhead {
+  border-bottom-color: #e0e0e0;
+  font-family: Arial, sans-serif;
+}
+
+.theme-minimal .letterhead h2 {
+  color: #666;
+}
+
 @media print {
   .toolbar,
-  .empty-state-hint {
-    display: none;
+  .empty-state-hint,
+  .drag-handle,
+  .guide-line {
+    display: none !important;
   }
 
   .editor-container {
@@ -247,18 +316,28 @@
 
   .document {
     margin: 0;
-    padding: 0;
+    padding: 40px;
     box-shadow: none;
-    width: 100%;
+    width: 8.5in;
     height: auto;
   }
 
+  .text-element-wrapper {
+    position: static;
+    margin-bottom: 8px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
   .text-element {
-    outline: none;
+    outline: none !important;
+    border: none !important;
+    background: transparent !important;
   }
 
   .text-element:focus {
-    outline: none;
+    outline: none !important;
   }
 }
 

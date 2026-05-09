@@ -10,6 +10,7 @@ export default function Home() {
     address: string;
     phone: string;
     email: string;
+    logo: string;
   } | null>(null);
   const [showSetup, setShowSetup] = useState(false);
 
@@ -28,6 +29,7 @@ export default function Home() {
     address: string;
     phone: string;
     email: string;
+    logo: string;
   }) => {
     setLetterhead(data);
     localStorage.setItem('letterhead', JSON.stringify(data));
